@@ -63,28 +63,34 @@ class GmailMail
      */
     public function send($to, $subject, $from, $html)
     {
-        // Set client to deferred mode
-        $this->googleAPI->client->setDefer(true);
-        // Resumable upload
-        $usersMessages = $this->googleAPI->getServiceGmail()->users_messages;
-        //
-        $message = (new \Swift_Message($subject))
-            ->setFrom($from)
-            ->setTo($to)
-            ->setContentType('text/html')
-            ->setCharset('utf-8')
-            ->setBody($html);
+        try {
+            // Set client to deferred mode
+            //$this->googleAPI->client->setDefer(true);
+            // Resumable upload
+            $usersMessages = $this->googleAPI->getServiceGmail()->users_messages;
+            //
+            $message = (new \Swift_Message($subject))
+                ->setFrom($from)
+                ->setTo($to)
+                ->setContentType('html')
+                ->setCharset('utf-8')
+                ->setBody($html);
 
-        $msg_base64 = (new \Swift_Mime_ContentEncoder_Base64ContentEncoder())
-            ->encodeString($message->toString());
+            $msg_base64 = base64_encode($message->toString());
 
-        // Use a resumable upload for large mails
-        $gmailMessage = new Google_Service_Gmail_Message();
-        $gmailMessage->setRaw($msg_base64);
-        $gmailMessage = $mailer->send('me', $message);
+            // Use a resumable upload for large mails
+            $gmailMessage = new Google_Service_Gmail_Message();
+            $gmailMessage->setRaw($msg_base64);
+            $gmailMessage = $usersMessages->send('me', $gmailMessage);
+            //$this->googleAPI->client->setDefer(false);
+        } catch (\Google_Service_Exception $ex) {
+            //Log::alert($ex);
+            throw new ApplicationException('Failed to send email. Check event log for more info. Message: ' . json_decode($ex->getMessage(), true)['error']['message']);
+        }
     }
-    public function Oldsend($message, &$failedRecipients = null)
+    public function TestSend($message, &$failedRecipients = null)
     {
+        trace_log($message);
         try {
             // Use a resumable upload for large mails
             $gmailMessage = new Google_Service_Gmail_Message();

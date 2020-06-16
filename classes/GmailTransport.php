@@ -2,71 +2,76 @@
 
 namespace Zaxbux\GmailMailerDriver\Classes;
 
-use Log;
 use ApplicationException;
-use Swift_Transport;
-use Swift_Mime_SimpleMessage;
-use Swift_Mime_ContentEncoder_Base64ContentEncoder;
-use Swift_Events_EventListener;
-use Google_Service_Gmail_Message;
 use Google_Http_MediaFileUpload;
+use Google_Service_Gmail_Message;
+use Log;
+use Swift_Events_EventListener;
+use Swift_Mime_SimpleMessage;
+use Swift_Transport;
 use Zaxbux\GmailMailerDriver\Classes\GoogleAPI;
 
-class GmailTransport implements Swift_Transport {
-    
+class GmailTransport implements Swift_Transport
+{
+
     /**
      * Google API client
      * @var GoogleAPI
      */
-	private $googleAPI;
-		
-		public function __construct() {
-			$this->googleAPI = new GoogleAPI();
+    private $googleAPI;
 
-			if (!$this->googleAPI->isAuthorized()) {
-				throw new \Exception('Cannot send email. Gmail API not authorized.');
-			}
-		}
+    public function __construct()
+    {
+        $this->googleAPI = new GoogleAPI();
 
-    /**
-     * Stub since Gmail API is stateless
-     */
-    public function isStarted() {
-        return true;
+        if (!$this->googleAPI->isAuthorized()) {
+            throw new \Exception('Cannot send email. Gmail API not authorized.');
+        }
     }
 
-
     /**
      * Stub since Gmail API is stateless
      */
-    public function start() {
+    public function isStarted()
+    {
         return true;
     }
 
     /**
      * Stub since Gmail API is stateless
      */
-    public function stop() {
+    public function start()
+    {
         return true;
     }
 
     /**
      * Stub since Gmail API is stateless
      */
-    public function ping() {
+    public function stop()
+    {
+        return true;
+    }
+
+    /**
+     * Stub since Gmail API is stateless
+     */
+    public function ping()
+    {
         return true;
     }
 
     /**
      * Not implemented
      */
-    public function registerPlugin(Swift_Events_EventListener $plugin) {}
-
+    public function registerPlugin(Swift_Events_EventListener $plugin)
+    {}
 
     /**
      * Send an email
      */
-    public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null) {
+    public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null)
+    {
         try {
             // Use a resumable upload for large mails
             $gmailMessage = new Google_Service_Gmail_Message();
@@ -91,7 +96,7 @@ class GmailTransport implements Swift_Transport {
             $media->setFileSize(strlen($message->toString()));
 
             $status = false;
-            while (! $status) {
+            while (!$status) {
                 $status = $media->nextChunk();
             }
 
@@ -99,7 +104,7 @@ class GmailTransport implements Swift_Transport {
             $this->googleAPI->client->setDefer(false);
         } catch (\Google_Service_Exception $ex) {
             Log::alert($ex);
-            throw new ApplicationException('Failed to send email. Check event log for more info. Message: '.json_decode($ex->getMessage(), true)['error']['message']);
+            throw new ApplicationException('Failed to send email. Check event log for more info. Message: ' . json_decode($ex->getMessage(), true)['error']['message']);
         }
     }
 }
