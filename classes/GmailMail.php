@@ -61,9 +61,30 @@ class GmailMail
     /**
      * Send an email
      */
-    public function send($message, &$failedRecipients = null)
+    public function send($to, $subject, $from, $html)
     {
-        trace_log("function send");
+        // Set client to deferred mode
+        $this->googleAPI->client->setDefer(true);
+        // Resumable upload
+        $usersMessages = $this->googleAPI->getServiceGmail()->users_messages;
+        //
+        $message = (new \Swift_Message($subject))
+            ->setFrom($from)
+            ->setTo($to)
+            ->setContentType('text/html')
+            ->setCharset('utf-8')
+            ->setBody($html);
+
+        $msg_base64 = (new \Swift_Mime_ContentEncoder_Base64ContentEncoder())
+            ->encodeString($message->toString());
+
+        // Use a resumable upload for large mails
+        $gmailMessage = new Google_Service_Gmail_Message();
+        $gmailMessage->setRaw($msg_base64);
+        $gmailMessage = $mailer->send('me', $message);
+    }
+    public function Oldsend($message, &$failedRecipients = null)
+    {
         try {
             // Use a resumable upload for large mails
             $gmailMessage = new Google_Service_Gmail_Message();
